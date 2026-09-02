@@ -2,11 +2,13 @@ from datetime import datetime
 from uuid import UUID, uuid4
 
 from fastapi.testclient import TestClient
+from sqlmodel import Session, select
+
+from app.models.user import UserModel
 
 VALID_PROJECT = {
     "name": "Project Alpha",
     "description": "A valid project description",
-    "owner": "ABB Team",
     "status": "draft",
 }
 
@@ -23,6 +25,41 @@ def create_project(
     return response.json()
 
 
+def register_and_login(
+    client: TestClient,
+    email: str,
+    full_name: str,
+) -> tuple[dict[str, str], dict[str, object]]:
+    registration_response = client.post(
+        "/api/auth/register",
+        json={
+            "email": email,
+            "full_name": full_name,
+            "password": "password12345",
+        },
+    )
+    assert registration_response.status_code == 201
+
+    login_response = client.post(
+        "/api/auth/login",
+        data={"username": email, "password": "password12345"},
+    )
+    assert login_response.status_code == 200
+
+    return (
+        {"Authorization": f"Bearer {login_response.json()['access_token']}"},
+        registration_response.json(),
+    )
+
+
+def promote_to_admin(test_engine: object, email: str) -> None:
+    with Session(test_engine) as session:
+        user = session.exec(select(UserModel).where(UserModel.email == email)).one()
+        user.role = "admin"
+        session.add(user)
+        session.commit()
+
+
 def test_create_valid_project_returns_201(
     client: TestClient,
     auth_headers: dict[str, str],
@@ -34,7 +71,7 @@ def test_create_valid_project_returns_201(
     project = response.json()
     assert project["name"] == VALID_PROJECT["name"]
     assert project["description"] == VALID_PROJECT["description"]
-    assert project["owner"] == VALID_PROJECT["owner"]
+    assert project["owner"] == "Test User"
     assert project["status"] == VALID_PROJECT["status"]
     assert UUID(project["id"])
     assert UUID(project["owner_id"])
@@ -126,7 +163,6 @@ def test_patch_updates_only_supplied_fields(
         f"/api/projects/{sample_project['id']}",
         json={
             "status": "active",
-            "owner": "Platform Team",
         },
         headers=auth_headers,
     )
@@ -136,7 +172,7 @@ def test_patch_updates_only_supplied_fields(
     updated_project = response.json()
     assert updated_project["name"] == sample_project["name"]
     assert updated_project["description"] == sample_project["description"]
-    assert updated_project["owner"] == "Platform Team"
+    assert updated_project["owner"] == sample_project["owner"]
     assert updated_project["status"] == "active"
 
 

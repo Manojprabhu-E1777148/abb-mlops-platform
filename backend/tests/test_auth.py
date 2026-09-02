@@ -146,5 +146,5 @@ def test_user_cannot_access_another_users_project(client: TestClient) -> None:
     ]
 
     for response in responses:
-        assert response.status_code == 404
-        assert response.json()["detail"] == "Project not found"
+        assert response.status_code == 403
+        assert response.json()["detail"] == "Not authorized to access this project"

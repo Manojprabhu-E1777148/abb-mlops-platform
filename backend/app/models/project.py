@@ -1,9 +1,12 @@
 from datetime import datetime, timezone
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 from uuid import UUID, uuid4
 
 from sqlalchemy import Column, DateTime
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, Relationship, SQLModel
+
+if TYPE_CHECKING:
+    from app.models.user import UserModel
 
 
 class ProjectModel(SQLModel, table=True):
@@ -19,20 +22,21 @@ class ProjectModel(SQLModel, table=True):
         default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True), nullable=False),
     )
+    owner_user: "UserModel" = Relationship(back_populates="projects")
 
 
 class ProjectCreate(SQLModel):
     name: str = Field(min_length=3)
     description: str = Field(min_length=10)
-    owner: str = Field(min_length=2)
     status: Literal["draft", "active", "archived"] = "draft"
+    owner_id: UUID | None = None
 
 
 class ProjectUpdate(SQLModel):
     name: str | None = Field(default=None, min_length=3)
     description: str | None = Field(default=None, min_length=10)
-    owner: str | None = Field(default=None, min_length=2)
     status: Literal["draft", "active", "archived"] | None = None
+    owner_id: UUID | None = None
 
 
 class Project(SQLModel):

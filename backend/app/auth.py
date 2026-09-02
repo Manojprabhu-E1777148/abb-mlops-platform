@@ -86,3 +86,16 @@ def get_current_active_user(current_user: CurrentUserDependency) -> UserModel:
 
 
 CurrentActiveUserDependency = Annotated[UserModel, Depends(get_current_active_user)]
+
+
+def require_admin(current_user: CurrentActiveUserDependency) -> UserModel:
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin privileges required",
+        )
+
+    return current_user
+
+
+RequireAdminDependency = Annotated[UserModel, Depends(require_admin)]

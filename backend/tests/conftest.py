@@ -77,7 +77,6 @@ def sample_project(
         json={
             "name": "Project Alpha",
             "description": "A valid project description",
-            "owner": "ABB Team",
             "status": "draft",
         },
         headers=auth_headers,

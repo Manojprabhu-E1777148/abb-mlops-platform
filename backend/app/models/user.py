@@ -1,10 +1,13 @@
 from datetime import datetime, timezone
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 from uuid import UUID, uuid4
 
 from pydantic import EmailStr, field_validator
 from sqlalchemy import Boolean, CheckConstraint, Column, DateTime, String
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, Relationship, SQLModel
+
+if TYPE_CHECKING:
+    from app.models.project import ProjectModel
 
 
 class UserModel(SQLModel, table=True):
@@ -31,6 +34,7 @@ class UserModel(SQLModel, table=True):
         default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True), nullable=False),
     )
+    projects: list["ProjectModel"] = Relationship(back_populates="owner_user")
 
 
 class UserRegister(SQLModel):
