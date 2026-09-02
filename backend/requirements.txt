@@ -6,6 +6,7 @@ httpx
 PyJWT
 pwdlib[argon2]
 email-validator
+python-multipart
 pydantic-settings
 alembic
 psycopg[binary]

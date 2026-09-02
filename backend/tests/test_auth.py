@@ -12,7 +12,7 @@ def register_and_login(
     client: TestClient,
     email: str,
     full_name: str,
-    password: str = "password123",
+    password: str = "password12345",
 ) -> dict[str, str]:
     registration_response = client.post(
         "/api/auth/register",
@@ -26,7 +26,7 @@ def register_and_login(
 
     login_response = client.post(
         "/api/auth/login",
-        json={"email": email, "password": password},
+        data={"username": email, "password": password},
     )
     assert login_response.status_code == 200
 
@@ -37,16 +37,19 @@ def test_register_user_returns_safe_profile(client: TestClient) -> None:
     response = client.post(
         "/api/auth/register",
         json={
-            "email": "user@example.com",
+            "email": "USER@EXAMPLE.COM",
             "full_name": "Test User",
-            "password": "password123",
+            "password": "password12345",
         },
     )
 
     assert response.status_code == 201
     assert response.json()["email"] == "user@example.com"
     assert response.json()["full_name"] == "Test User"
-    assert "hashed_password" not in response.json()
+    assert response.json()["role"] == "member"
+    assert response.json()["is_active"] is True
+    assert "password_hash" not in response.json()
+    assert "password" not in response.json()
 
 
 def test_register_duplicate_email_returns_409(client: TestClient) -> None:
@@ -57,7 +60,7 @@ def test_register_duplicate_email_returns_409(client: TestClient) -> None:
         json={
             "email": "user@example.com",
             "full_name": "Another User",
-            "password": "password123",
+            "password": "password12345",
         },
     )
 
@@ -69,7 +72,7 @@ def test_login_returns_bearer_access_token(client: TestClient) -> None:
 
     response = client.post(
         "/api/auth/login",
-        json={"email": "user@example.com", "password": "password123"},
+        data={"username": "user@example.com", "password": "password12345"},
     )
 
     assert response.status_code == 200
@@ -82,10 +85,28 @@ def test_login_with_invalid_credentials_returns_401(client: TestClient) -> None:
 
     response = client.post(
         "/api/auth/login",
-        json={"email": "user@example.com", "password": "incorrect-password"},
+        data={"username": "user@example.com", "password": "incorrect-password"},
     )
 
     assert response.status_code == 401
+    assert response.json()["detail"] == "Incorrect email or password"
+
+
+def test_get_me_requires_a_token(client: TestClient) -> None:
+    response = client.get("/api/auth/me")
+
+    assert response.status_code == 401
+
+
+def test_get_me_returns_authenticated_user(client: TestClient) -> None:
+    headers = register_and_login(client, "user@example.com", "Test User")
+
+    response = client.get("/api/auth/me", headers=headers)
+
+    assert response.status_code == 200
+    assert response.json()["email"] == "user@example.com"
+    assert response.json()["role"] == "member"
+    assert "password_hash" not in response.json()
 
 
 def test_protected_project_routes_require_a_token(client: TestClient) -> None:

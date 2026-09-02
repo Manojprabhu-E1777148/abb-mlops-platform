@@ -6,8 +6,8 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import SQLModel, Session, create_engine
 
-os.environ.setdefault("JWT_SECRET_KEY", "test-jwt-secret-with-at-least-32-bytes")
-os.environ.setdefault("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "30")
+os.environ.setdefault("SECRET_KEY", "test-jwt-secret-with-at-least-32-bytes")
+os.environ.setdefault("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
 
 from app import database
 from app.database import get_session
@@ -53,17 +53,14 @@ def auth_headers(client: TestClient) -> dict[str, str]:
         json={
             "email": "user@example.com",
             "full_name": "Test User",
-            "password": "password123",
+            "password": "password12345",
         },
     )
     assert registration_response.status_code == 201
 
     login_response = client.post(
         "/api/auth/login",
-        json={
-            "email": "user@example.com",
-            "password": "password123",
-        },
+        data={"username": "user@example.com", "password": "password12345"},
     )
     assert login_response.status_code == 200
 

@@ -31,11 +31,16 @@ def verify_password(password: str, hashed_password: str) -> bool:
     return password_hash.verify(password, hashed_password)
 
 
-def create_access_token(user_id: UUID) -> str:
+def create_access_token(user: UserModel) -> str:
     expires_at = datetime.now(timezone.utc) + timedelta(
         minutes=get_jwt_access_token_expire_minutes()
     )
-    payload = {"sub": str(user_id), "exp": expires_at}
+    payload = {
+        "sub": str(user.id),
+        "email": user.email,
+        "role": user.role,
+        "exp": expires_at,
+    }
 
     return jwt.encode(payload, get_jwt_secret_key(), algorithm=JWT_ALGORITHM)
 
@@ -68,3 +73,16 @@ def get_current_user(
 
 
 CurrentUserDependency = Annotated[UserModel, Depends(get_current_user)]
+
+
+def get_current_active_user(current_user: CurrentUserDependency) -> UserModel:
+    if not current_user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Inactive user",
+        )
+
+    return current_user
+
+
+CurrentActiveUserDependency = Annotated[UserModel, Depends(get_current_active_user)]

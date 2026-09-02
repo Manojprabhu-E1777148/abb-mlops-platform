@@ -1,16 +1,17 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel import Session, select
 
 from app.auth import (
-    CurrentUserDependency,
+    CurrentActiveUserDependency,
     create_access_token,
     hash_password,
     verify_password,
 )
 from app.database import get_session
-from app.models.user import Token, User, UserLogin, UserModel, UserRegister
+from app.models.user import Token, User, UserModel, UserRegister
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
@@ -31,7 +32,8 @@ def register_user(user_register: UserRegister, session: SessionDependency) -> Us
     user = UserModel(
         email=user_register.email,
         full_name=user_register.full_name,
-        hashed_password=hash_password(user_register.password),
+        password_hash=hash_password(user_register.password),
+        role="member",
     )
     session.add(user)
     session.commit()
@@ -41,20 +43,27 @@ def register_user(user_register: UserRegister, session: SessionDependency) -> Us
 
 
 @router.post("/login", response_model=Token)
-def login_user(user_login: UserLogin, session: SessionDependency) -> Token:
+def login_user(
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    session: SessionDependency,
+) -> Token:
     user = session.exec(
-        select(UserModel).where(UserModel.email == user_login.email)
+        select(UserModel).where(UserModel.email == form_data.username.lower())
     ).first()
-    if user is None or not verify_password(user_login.password, user.hashed_password):
+    if (
+        user is None
+        or not user.is_active
+        or not verify_password(form_data.password, user.password_hash)
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password",
+            detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    return Token(access_token=create_access_token(user.id), token_type="bearer")
+    return Token(access_token=create_access_token(user), token_type="bearer")
 
 
 @router.get("/me", response_model=User)
-def get_me(current_user: CurrentUserDependency) -> UserModel:
+def get_me(current_user: CurrentActiveUserDependency) -> UserModel:
     return current_user
