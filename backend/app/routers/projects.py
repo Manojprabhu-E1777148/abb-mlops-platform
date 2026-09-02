@@ -6,7 +6,14 @@ from sqlmodel import Session, select
 
 from app.auth import CurrentActiveUserDependency
 from app.database import get_session
-from app.models.project import Project, ProjectCreate, ProjectModel, ProjectUpdate
+from app.models.project import (
+    Project,
+    ProjectCreate,
+    ProjectList,
+    ProjectModel,
+    ProjectOwner,
+    ProjectUpdate,
+)
 from app.models.user import UserModel
 
 router = APIRouter(prefix="/api/projects", tags=["Projects"])
@@ -53,20 +60,40 @@ def get_owner_or_422(owner_id: UUID, session: Session) -> UserModel:
     return owner
 
 
-@router.get("")
+def serialize_project(project: ProjectModel) -> Project:
+    owner = project.owner_user
+
+    return Project(
+        id=project.id,
+        name=project.name,
+        description=project.description,
+        owner_id=project.owner_id,
+        owner=ProjectOwner(
+            id=owner.id,
+            email=owner.email,
+            full_name=owner.full_name,
+            role=owner.role,
+            is_active=owner.is_active,
+        ),
+        status=project.status,
+        created_at=project.created_at,
+    )
+
+
+@router.get("", response_model=ProjectList)
 def get_projects(
     session: SessionDependency,
     current_user: CurrentActiveUserDependency,
-) -> dict[str, object]:
+) -> ProjectList:
     statement = select(ProjectModel).order_by(ProjectModel.created_at)
     if current_user.role != "admin":
         statement = statement.where(ProjectModel.owner_id == current_user.id)
     projects = list(session.exec(statement).all())
 
-    return {
-        "items": projects,
-        "count": len(projects),
-    }
+    return ProjectList(
+        items=[serialize_project(project) for project in projects],
+        count=len(projects),
+    )
 
 
 @router.post("", response_model=Project, status_code=status.HTTP_201_CREATED)
@@ -74,7 +101,7 @@ def create_project(
     project: ProjectCreate,
     session: SessionDependency,
     current_user: CurrentActiveUserDependency,
-) -> ProjectModel:
+) -> Project:
     if current_user.role != "admin" and project.owner_id is not None:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -86,7 +113,6 @@ def create_project(
     new_project = ProjectModel(
         name=project.name,
         description=project.description,
-        owner=owner.full_name,
         owner_id=owner.id,
         status=project.status,
     )
@@ -95,7 +121,7 @@ def create_project(
     session.commit()
     session.refresh(new_project)
 
-    return new_project
+    return serialize_project(new_project)
 
 
 @router.get("/{project_id}", response_model=Project)
@@ -103,8 +129,8 @@ def get_project(
     project_id: UUID,
     session: SessionDependency,
     current_user: CurrentActiveUserDependency,
-) -> ProjectModel:
-    return get_authorized_project(project_id, session, current_user)
+) -> Project:
+    return serialize_project(get_authorized_project(project_id, session, current_user))
 
 
 @router.patch("/{project_id}", response_model=Project)
@@ -113,7 +139,7 @@ def update_project(
     project_update: ProjectUpdate,
     session: SessionDependency,
     current_user: CurrentActiveUserDependency,
-) -> ProjectModel:
+) -> Project:
     project = get_authorized_project(project_id, session, current_user)
     update_data = project_update.model_dump(exclude_unset=True)
 
@@ -133,14 +159,13 @@ def update_project(
 
         owner = get_owner_or_422(owner_id, session)
         project.owner_id = owner.id
-        project.owner = owner.full_name
 
     project.sqlmodel_update(update_data)
     session.add(project)
     session.commit()
     session.refresh(project)
 
-    return project
+    return serialize_project(project)
 
 
 @router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)

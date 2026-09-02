@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Literal
 from uuid import UUID, uuid4
 
+from pydantic import ConfigDict
 from sqlalchemy import Column, DateTime
 from sqlmodel import Field, Relationship, SQLModel
 
@@ -15,7 +16,6 @@ class ProjectModel(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     name: str
     description: str
-    owner: str
     owner_id: UUID = Field(foreign_key="users.id", nullable=False)
     status: str
     created_at: datetime = Field(
@@ -26,6 +26,8 @@ class ProjectModel(SQLModel, table=True):
 
 
 class ProjectCreate(SQLModel):
+    model_config = ConfigDict(extra="forbid")
+
     name: str = Field(min_length=3)
     description: str = Field(min_length=10)
     status: Literal["draft", "active", "archived"] = "draft"
@@ -33,17 +35,32 @@ class ProjectCreate(SQLModel):
 
 
 class ProjectUpdate(SQLModel):
+    model_config = ConfigDict(extra="forbid")
+
     name: str | None = Field(default=None, min_length=3)
     description: str | None = Field(default=None, min_length=10)
     status: Literal["draft", "active", "archived"] | None = None
     owner_id: UUID | None = None
 
 
+class ProjectOwner(SQLModel):
+    id: UUID
+    email: str
+    full_name: str
+    role: Literal["admin", "member"]
+    is_active: bool
+
+
 class Project(SQLModel):
     id: UUID
     name: str
     description: str
-    owner: str
     owner_id: UUID
+    owner: ProjectOwner
     status: str
     created_at: datetime
+
+
+class ProjectList(SQLModel):
+    items: list[Project]
+    count: int

@@ -71,7 +71,10 @@ def test_create_valid_project_returns_201(
     project = response.json()
     assert project["name"] == VALID_PROJECT["name"]
     assert project["description"] == VALID_PROJECT["description"]
-    assert project["owner"] == "Test User"
+    assert project["owner_id"] == project["owner"]["id"]
+    assert project["owner"]["full_name"] == "Test User"
+    assert project["owner"]["email"] == "user@example.com"
+    assert "password_hash" not in project["owner"]
     assert project["status"] == VALID_PROJECT["status"]
     assert UUID(project["id"])
     assert UUID(project["owner_id"])

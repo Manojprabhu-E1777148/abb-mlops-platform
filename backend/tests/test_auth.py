@@ -3,7 +3,6 @@ from fastapi.testclient import TestClient
 PROJECT_PAYLOAD = {
     "name": "Project Alpha",
     "description": "A valid project description",
-    "owner": "ABB Team",
     "status": "draft",
 }
 

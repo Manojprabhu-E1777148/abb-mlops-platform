@@ -20,6 +20,39 @@ def upgrade() -> None:
     bind = op.get_bind()
     inspector = sa.inspect(bind)
     columns = {column["name"] for column in inspector.get_columns("projects")}
+
+    if "owner_id" not in columns:
+        op.add_column("projects", sa.Column("owner_id", sa.Uuid(), nullable=True))
+
+    if "owner" in columns:
+        bind.execute(
+            sa.text(
+                """
+                UPDATE projects AS project
+                SET owner_id = matched_user.id
+                FROM users AS matched_user
+                WHERE project.owner_id IS NULL
+                  AND project.owner IS NOT NULL
+                  AND lower(btrim(project.owner)) = lower(btrim(matched_user.full_name))
+                  AND (
+                      SELECT count(*)
+                      FROM users AS candidate_user
+                      WHERE lower(btrim(candidate_user.full_name)) = lower(btrim(project.owner))
+                  ) = 1
+                """
+            )
+        )
+
+    unowned_project_count = bind.execute(
+        sa.text("SELECT count(*) FROM projects WHERE owner_id IS NULL")
+    ).scalar_one()
+    if unowned_project_count:
+        raise RuntimeError(
+            "Cannot migrate project ownership: one or more legacy owner values do not "
+            "map uniquely to a user. Resolve those records and rerun the migration."
+        )
+
+    inspector = sa.inspect(bind)
     foreign_keys = inspector.get_foreign_keys("projects")
     has_owner_foreign_key = any(
         foreign_key["constrained_columns"] == ["owner_id"]
@@ -29,9 +62,6 @@ def upgrade() -> None:
     )
 
     with op.batch_alter_table("projects", recreate="auto") as batch_op:
-        if "owner_id" not in columns:
-            batch_op.add_column(sa.Column("owner_id", sa.Uuid(), nullable=True))
-
         if not has_owner_foreign_key:
             batch_op.create_foreign_key(
                 "fk_projects_owner_id_users",
@@ -40,6 +70,15 @@ def upgrade() -> None:
                 ["id"],
             )
 
+        batch_op.alter_column(
+            "owner_id",
+            existing_type=sa.Uuid(),
+            nullable=False,
+        )
+
+        if "owner" in columns:
+            batch_op.drop_column("owner")
+
 
 def downgrade() -> None:
-    pass
+    raise NotImplementedError("Project ownership migration is intentionally irreversible.")
