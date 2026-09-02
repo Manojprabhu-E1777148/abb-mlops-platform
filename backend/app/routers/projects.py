@@ -26,6 +26,13 @@ class Project(BaseModel):
     created_at: datetime
 
 
+class ProjectUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=3)
+    description: str | None = Field(default=None, min_length=10)
+    owner: str | None = Field(default=None, min_length=2)
+    status: Literal["draft", "active", "archived"] | None = None
+
+
 @router.get("")
 async def get_projects() -> dict[str, object]:
     return {
@@ -52,6 +59,17 @@ async def create_project(project: ProjectCreate) -> Project:
 async def get_project(project_id: UUID) -> Project:
     for project in projects:
         if project.id == project_id:
+            return project
+
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
+
+
+@router.patch("/{project_id}", response_model=Project)
+async def update_project(project_id: UUID, project_update: ProjectUpdate) -> Project:
+    for project in projects:
+        if project.id == project_id:
+            for field, value in project_update.model_dump(exclude_unset=True).items():
+                setattr(project, field, value)
             return project
 
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
