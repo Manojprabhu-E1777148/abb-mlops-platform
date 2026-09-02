@@ -13,6 +13,7 @@ class ProjectModel(SQLModel, table=True):
     name: str
     description: str
     owner: str
+    owner_id: UUID = Field(foreign_key="users.id", nullable=False)
     status: str
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
@@ -39,5 +40,6 @@ class Project(SQLModel):
     name: str
     description: str
     owner: str
+    owner_id: UUID
     status: str
     created_at: datetime

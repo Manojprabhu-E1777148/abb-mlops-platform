@@ -1,9 +1,13 @@
 from collections.abc import Generator
+import os
 from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import SQLModel, Session, create_engine
+
+os.environ.setdefault("JWT_SECRET_KEY", "test-jwt-secret-with-at-least-32-bytes")
+os.environ.setdefault("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "30")
 
 from app import database
 from app.database import get_session
@@ -43,7 +47,34 @@ def client(
 
 
 @pytest.fixture
-def sample_project(client: TestClient) -> dict[str, object]:
+def auth_headers(client: TestClient) -> dict[str, str]:
+    registration_response = client.post(
+        "/api/auth/register",
+        json={
+            "email": "user@example.com",
+            "full_name": "Test User",
+            "password": "password123",
+        },
+    )
+    assert registration_response.status_code == 201
+
+    login_response = client.post(
+        "/api/auth/login",
+        json={
+            "email": "user@example.com",
+            "password": "password123",
+        },
+    )
+    assert login_response.status_code == 200
+
+    return {"Authorization": f"Bearer {login_response.json()['access_token']}"}
+
+
+@pytest.fixture
+def sample_project(
+    client: TestClient,
+    auth_headers: dict[str, str],
+) -> dict[str, object]:
     response = client.post(
         "/api/projects",
         json={
@@ -52,6 +83,7 @@ def sample_project(client: TestClient) -> dict[str, object]:
             "owner": "ABB Team",
             "status": "draft",
         },
+        headers=auth_headers,
     )
 
     assert response.status_code == 201

@@ -11,16 +11,23 @@ VALID_PROJECT = {
 }
 
 
-def create_project(client: TestClient, payload: dict[str, str]) -> dict[str, object]:
-    response = client.post("/api/projects", json=payload)
+def create_project(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    payload: dict[str, str],
+) -> dict[str, object]:
+    response = client.post("/api/projects", json=payload, headers=auth_headers)
 
     assert response.status_code == 201
 
     return response.json()
 
 
-def test_create_valid_project_returns_201(client: TestClient) -> None:
-    response = client.post("/api/projects", json=VALID_PROJECT)
+def test_create_valid_project_returns_201(
+    client: TestClient,
+    auth_headers: dict[str, str],
+) -> None:
+    response = client.post("/api/projects", json=VALID_PROJECT, headers=auth_headers)
 
     assert response.status_code == 201
 
@@ -30,32 +37,41 @@ def test_create_valid_project_returns_201(client: TestClient) -> None:
     assert project["owner"] == VALID_PROJECT["owner"]
     assert project["status"] == VALID_PROJECT["status"]
     assert UUID(project["id"])
+    assert UUID(project["owner_id"])
     assert datetime.fromisoformat(project["created_at"].replace("Z", "+00:00"))
 
 
-def test_create_invalid_project_returns_422(client: TestClient) -> None:
+def test_create_invalid_project_returns_422(
+    client: TestClient,
+    auth_headers: dict[str, str],
+) -> None:
     response = client.post(
         "/api/projects",
         json={
             **VALID_PROJECT,
             "name": "AB",
         },
+        headers=auth_headers,
     )
 
     assert response.status_code == 422
 
 
-def test_list_projects_returns_two_created_projects(client: TestClient) -> None:
-    first_project = create_project(client, VALID_PROJECT)
+def test_list_projects_returns_two_created_projects(
+    client: TestClient,
+    auth_headers: dict[str, str],
+) -> None:
+    first_project = create_project(client, auth_headers, VALID_PROJECT)
     second_project = create_project(
         client,
+        auth_headers,
         {
             **VALID_PROJECT,
             "name": "Project Beta",
         },
     )
 
-    response = client.get("/api/projects")
+    response = client.get("/api/projects", headers=auth_headers)
 
     assert response.status_code == 200
 
@@ -67,8 +83,11 @@ def test_list_projects_returns_two_created_projects(client: TestClient) -> None:
     }
 
 
-def test_list_projects_starts_with_clean_database(client: TestClient) -> None:
-    response = client.get("/api/projects")
+def test_list_projects_starts_with_clean_database(
+    client: TestClient,
+    auth_headers: dict[str, str],
+) -> None:
+    response = client.get("/api/projects", headers=auth_headers)
 
     assert response.status_code == 200
     assert response.json() == {"items": [], "count": 0}
@@ -76,16 +95,23 @@ def test_list_projects_starts_with_clean_database(client: TestClient) -> None:
 
 def test_get_existing_project_returns_200(
     client: TestClient,
+    auth_headers: dict[str, str],
     sample_project: dict[str, object],
 ) -> None:
-    response = client.get(f"/api/projects/{sample_project['id']}")
+    response = client.get(
+        f"/api/projects/{sample_project['id']}",
+        headers=auth_headers,
+    )
 
     assert response.status_code == 200
     assert response.json() == sample_project
 
 
-def test_get_missing_project_returns_404(client: TestClient) -> None:
-    response = client.get(f"/api/projects/{uuid4()}")
+def test_get_missing_project_returns_404(
+    client: TestClient,
+    auth_headers: dict[str, str],
+) -> None:
+    response = client.get(f"/api/projects/{uuid4()}", headers=auth_headers)
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Project not found"
@@ -93,6 +119,7 @@ def test_get_missing_project_returns_404(client: TestClient) -> None:
 
 def test_patch_updates_only_supplied_fields(
     client: TestClient,
+    auth_headers: dict[str, str],
     sample_project: dict[str, object],
 ) -> None:
     response = client.patch(
@@ -101,6 +128,7 @@ def test_patch_updates_only_supplied_fields(
             "status": "active",
             "owner": "Platform Team",
         },
+        headers=auth_headers,
     )
 
     assert response.status_code == 200
@@ -114,20 +142,26 @@ def test_patch_updates_only_supplied_fields(
 
 def test_patch_rejects_pending_status(
     client: TestClient,
+    auth_headers: dict[str, str],
     sample_project: dict[str, object],
 ) -> None:
     response = client.patch(
         f"/api/projects/{sample_project['id']}",
         json={"status": "pending"},
+        headers=auth_headers,
     )
 
     assert response.status_code == 422
 
 
-def test_patch_missing_project_returns_404(client: TestClient) -> None:
+def test_patch_missing_project_returns_404(
+    client: TestClient,
+    auth_headers: dict[str, str],
+) -> None:
     response = client.patch(
         f"/api/projects/{uuid4()}",
         json={"status": "active"},
+        headers=auth_headers,
     )
 
     assert response.status_code == 404
@@ -136,10 +170,17 @@ def test_patch_missing_project_returns_404(client: TestClient) -> None:
 
 def test_delete_project_returns_204_and_removes_project(
     client: TestClient,
+    auth_headers: dict[str, str],
     sample_project: dict[str, object],
 ) -> None:
-    delete_response = client.delete(f"/api/projects/{sample_project['id']}")
-    get_response = client.get(f"/api/projects/{sample_project['id']}")
+    delete_response = client.delete(
+        f"/api/projects/{sample_project['id']}",
+        headers=auth_headers,
+    )
+    get_response = client.get(
+        f"/api/projects/{sample_project['id']}",
+        headers=auth_headers,
+    )
 
     assert delete_response.status_code == 204
     assert delete_response.content == b""

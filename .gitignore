@@ -1,4 +1,9 @@
 # Python
+.env
+*.db
+__pycache__/
+.pytest_cache/
+.venv/
 backend/.venv/
 backend/__pycache__/
 backend/**/*.pyc
