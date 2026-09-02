@@ -1,0 +1,24 @@
+# Python
+backend/.venv/
+backend/__pycache__/
+backend/**/*.pyc
+backend/.env
+backend/.pytest_cache/
+
+# Angular
+frontend/mlops-ui/node_modules/
+frontend/mlops-ui/dist/
+frontend/mlops-ui/.angular/
+
+# Visual Studio temporary files
+.vs/
+*.user
+*.suo
+
+# SQL Server local database files
+database/*.mdf
+database/*.ldf
+
+# Test reports
+coverage.xml
+htmlcov/
