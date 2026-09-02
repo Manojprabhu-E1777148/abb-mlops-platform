@@ -1,40 +1,22 @@
-from datetime import datetime, timezone
-from typing import Literal
-from uuid import UUID, uuid4
+from typing import Annotated
+from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Response, status
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Depends, HTTPException, Response, status
+from sqlmodel import Session, select
+
+from app.database import get_session
+from app.models.project import Project, ProjectCreate, ProjectModel, ProjectUpdate
 
 router = APIRouter(prefix="/api/projects", tags=["Projects"])
 
-projects: list["Project"] = []
-
-
-class ProjectCreate(BaseModel):
-    name: str = Field(min_length=3)
-    description: str = Field(min_length=10)
-    owner: str = Field(min_length=2)
-    status: Literal["draft", "active", "archived"] = "draft"
-
-
-class Project(BaseModel):
-    id: UUID
-    name: str
-    description: str
-    owner: str
-    status: str
-    created_at: datetime
-
-
-class ProjectUpdate(BaseModel):
-    name: str | None = Field(default=None, min_length=3)
-    description: str | None = Field(default=None, min_length=10)
-    owner: str | None = Field(default=None, min_length=2)
-    status: Literal["draft", "active", "archived"] | None = None
+SessionDependency = Annotated[Session, Depends(get_session)]
 
 
 @router.get("")
-async def get_projects() -> dict[str, object]:
+def get_projects(session: SessionDependency) -> dict[str, object]:
+    statement = select(ProjectModel).order_by(ProjectModel.created_at)
+    projects = list(session.exec(statement).all())
+
     return {
         "items": projects,
         "count": len(projects),
@@ -42,44 +24,59 @@ async def get_projects() -> dict[str, object]:
 
 
 @router.post("", response_model=Project, status_code=status.HTTP_201_CREATED)
-async def create_project(project: ProjectCreate) -> Project:
-    new_project = Project(
-        id=uuid4(),
-        name=project.name,
-        description=project.description,
-        owner=project.owner,
-        status=project.status,
-        created_at=datetime.now(timezone.utc),
-    )
-    projects.append(new_project)
+def create_project(project: ProjectCreate, session: SessionDependency) -> ProjectModel:
+    new_project = ProjectModel(**project.model_dump())
+
+    session.add(new_project)
+    session.commit()
+    session.refresh(new_project)
+
     return new_project
 
 
 @router.get("/{project_id}", response_model=Project)
-async def get_project(project_id: UUID) -> Project:
-    for project in projects:
-        if project.id == project_id:
-            return project
+def get_project(project_id: UUID, session: SessionDependency) -> ProjectModel:
+    project = session.exec(
+        select(ProjectModel).where(ProjectModel.id == project_id)
+    ).first()
 
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
+    if project is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
+
+    return project
 
 
 @router.patch("/{project_id}", response_model=Project)
-async def update_project(project_id: UUID, project_update: ProjectUpdate) -> Project:
-    for project in projects:
-        if project.id == project_id:
-            for field, value in project_update.model_dump(exclude_unset=True).items():
-                setattr(project, field, value)
-            return project
+def update_project(
+    project_id: UUID,
+    project_update: ProjectUpdate,
+    session: SessionDependency,
+) -> ProjectModel:
+    project = session.exec(
+        select(ProjectModel).where(ProjectModel.id == project_id)
+    ).first()
 
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
+    if project is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
+
+    project.sqlmodel_update(project_update.model_dump(exclude_unset=True))
+    session.add(project)
+    session.commit()
+    session.refresh(project)
+
+    return project
 
 
 @router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_project(project_id: UUID) -> Response:
-    for index, project in enumerate(projects):
-        if project.id == project_id:
-            projects.pop(index)
-            return Response(status_code=status.HTTP_204_NO_CONTENT)
+def delete_project(project_id: UUID, session: SessionDependency) -> Response:
+    project = session.exec(
+        select(ProjectModel).where(ProjectModel.id == project_id)
+    ).first()
 
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
+    if project is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
+
+    session.delete(project)
+    session.commit()
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
