@@ -5,3 +5,9 @@ pytest
 httpx2fastapi
 uvicorn
 sqlmodel
+fastapi
+uvicorn
+sqlmodel
+pytest
+httpx
+httpx2
