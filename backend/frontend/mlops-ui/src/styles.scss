@@ -1,0 +1,23 @@
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #f3f6fa;
+  color: #172033;
+  font-family: Inter, "Segoe UI", Arial, sans-serif;
+}
+
+button, input { font: inherit; }
+
+.page { margin: 32px auto; max-width: 1120px; padding: 0 24px; }
+.page h1 { color: #0b2d57; }
+.page article, .page a { background: #fff; border: 1px solid #dce3ed; border-radius: 12px; color: inherit; display: block; margin: 12px 0; padding: 20px; text-decoration: none; }
+.page a:hover { border-color: #0f6cbd; }
+.grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+.ui-state { background: #fff; border: 1px solid #dce3ed; border-radius: 12px; padding: 20px; }
+.action-form { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin: 0 0 20px; }
+.action-form input, .action-form select { border: 1px solid #c9d3e2; border-radius: 8px; padding: 11px 12px; }
+.action-form button, .page button { background: #0f6cbd; border: 0; border-radius: 8px; color: #fff; cursor: pointer; font-weight: 700; padding: 10px 14px; }
+.success { background: #e3f6eb; border-radius: 8px; color: #176b3a; padding: 12px; }
+.status { color: #176b3a; }
+@media (max-width: 600px) { .page { margin: 20px auto; padding: 0 16px; } }

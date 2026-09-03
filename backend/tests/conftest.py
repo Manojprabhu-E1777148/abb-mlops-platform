@@ -65,23 +65,3 @@ def auth_headers(client: TestClient) -> dict[str, str]:
     assert login_response.status_code == 200
 
     return {"Authorization": f"Bearer {login_response.json()['access_token']}"}
-
-
-@pytest.fixture
-def sample_project(
-    client: TestClient,
-    auth_headers: dict[str, str],
-) -> dict[str, object]:
-    response = client.post(
-        "/api/projects",
-        json={
-            "name": "Project Alpha",
-            "description": "A valid project description",
-            "status": "draft",
-        },
-        headers=auth_headers,
-    )
-
-    assert response.status_code == 201
-
-    return response.json()

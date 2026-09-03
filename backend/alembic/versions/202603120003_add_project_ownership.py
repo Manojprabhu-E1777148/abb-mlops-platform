@@ -24,10 +24,28 @@ def upgrade() -> None:
     if "owner_id" not in columns:
         op.add_column("projects", sa.Column("owner_id", sa.Uuid(), nullable=True))
 
-    if "owner" in columns:
-        bind.execute(
-            sa.text(
+    unowned_project_count = bind.execute(
+        sa.text("SELECT count(*) FROM projects WHERE owner_id IS NULL")
+    ).scalar_one()
+
+    if "owner" in columns and unowned_project_count:
+        if bind.dialect.name == "mssql":
+            backfill_statement = """
+                UPDATE project
+                SET owner_id = matched_user.id
+                FROM projects AS project
+                INNER JOIN users AS matched_user
+                    ON lower(ltrim(rtrim(project.owner))) = lower(ltrim(rtrim(matched_user.full_name)))
+                WHERE project.owner_id IS NULL
+                  AND project.owner IS NOT NULL
+                  AND (
+                      SELECT count(*)
+                      FROM users AS candidate_user
+                      WHERE lower(ltrim(rtrim(candidate_user.full_name))) = lower(ltrim(rtrim(project.owner)))
+                  ) = 1
                 """
+        else:
+            backfill_statement = """
                 UPDATE projects AS project
                 SET owner_id = matched_user.id
                 FROM users AS matched_user
@@ -40,12 +58,12 @@ def upgrade() -> None:
                       WHERE lower(btrim(candidate_user.full_name)) = lower(btrim(project.owner))
                   ) = 1
                 """
-            )
-        )
 
-    unowned_project_count = bind.execute(
-        sa.text("SELECT count(*) FROM projects WHERE owner_id IS NULL")
-    ).scalar_one()
+        bind.execute(sa.text(backfill_statement))
+        unowned_project_count = bind.execute(
+            sa.text("SELECT count(*) FROM projects WHERE owner_id IS NULL")
+        ).scalar_one()
+
     if unowned_project_count:
         raise RuntimeError(
             "Cannot migrate project ownership: one or more legacy owner values do not "

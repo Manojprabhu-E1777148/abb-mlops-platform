@@ -5,11 +5,17 @@ from sqlalchemy import engine_from_config, pool
 from sqlmodel import SQLModel
 
 from app.core.config import settings
-from app.models.project import ProjectModel
+from app.models.mlops import (
+    DeploymentEventModel,
+    DeploymentModel,
+    ModelMetricModel,
+    ModelModel,
+    ModelVersionModel,
+)
 from app.models.user import UserModel
 
 config = context.config
-config.set_main_option("sqlalchemy.url", settings.database_url)
+config.set_main_option("sqlalchemy.url", settings.database_url.replace("%", "%%"))
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)

@@ -1,0 +1,51 @@
+.login-page {
+  align-items: center;
+  background: linear-gradient(135deg, #071a42, #174b85 58%, #00a6a0);
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.login-card {
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 24px 70px rgb(0 0 0 / 28%);
+  display: grid;
+  gap: 18px;
+  max-width: 430px;
+  padding: 42px;
+  width: 100%;
+}
+
+h1 { color: #0b2d57; font-size: 28px; margin: 0; }
+p { color: #5c6b82; line-height: 1.5; margin: 0; }
+label { color: #34425a; display: grid; font-size: 14px; font-weight: 650; gap: 7px; }
+input { border: 1px solid #c9d3e2; border-radius: 8px; padding: 11px 12px; }
+input:focus { border-color: #1479c9; box-shadow: 0 0 0 3px rgb(20 121 201 / 16%); outline: none; }
+button { background: #0f6cbd; border: 0; border-radius: 8px; color: #fff; cursor: pointer; font-weight: 700; padding: 11px 16px; }
+button:hover { background: #075da8; }
+button:disabled { cursor: wait; opacity: .65; }
+.error { background: #fff0f0; border-radius: 7px; color: #ad2020; padding: 10px; }
+
+.workspace { min-height: 100vh; }
+.workspace header { align-items: center; background: #fff; border-bottom: 1px solid #dce3ed; display: flex; justify-content: space-between; padding: 20px clamp(20px, 6vw, 90px); }
+.workspace header button { margin-left: 16px; }
+.status { margin: 30px auto; max-width: 960px; padding: 0 24px; }
+.dashboard { margin: 32px auto; max-width: 1120px; padding: 0 24px; }
+.dashboard-heading { align-items: center; display: flex; justify-content: space-between; margin-bottom: 22px; }
+.dashboard h2 { font-size: 25px; margin: 3px 0; }
+.eyebrow { color: #0f6cbd; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.create-model { display: grid; gap: 12px; grid-template-columns: 1fr 2fr; margin-bottom: 20px; }
+.read-only, .empty-state { background: #fff; border: 1px solid #dce3ed; border-radius: 12px; padding: 20px; }
+.model-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.model-card { background: #fff; border: 1px solid #dce3ed; border-radius: 12px; padding: 20px; }
+.model-card h3 { margin: 0 0 8px; }
+.model-card small { color: #68758a; display: block; margin-top: 18px; }
+
+@media (max-width: 600px) {
+  .login-card { padding: 28px 24px; }
+  .workspace header { align-items: flex-start; flex-direction: column; gap: 18px; }
+  .dashboard-heading { align-items: flex-start; flex-direction: column; gap: 14px; }
+  .create-model { grid-template-columns: 1fr; }
+}

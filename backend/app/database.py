@@ -17,7 +17,14 @@ def get_session() -> Generator[Session, None, None]:
 
 
 def init_db() -> None:
-    from app.models.project import ProjectModel
+    # Import models so SQLModel registers their tables in metadata.
+    from app.models.mlops import (
+        DeploymentEventModel,
+        DeploymentModel,
+        ModelMetricModel,
+        ModelModel,
+        ModelVersionModel,
+    )
     from app.models.user import UserModel
 
     if engine.url.get_backend_name() == "sqlite":

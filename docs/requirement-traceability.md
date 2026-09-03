@@ -1,0 +1,58 @@
+# Requirement Traceability Matrix
+
+Statuses reflect implemented Phase 1 backend-foundation work. Paths use the target `/api` prefix already used by the repository.
+
+| ID | Requirement | Backend API | Database Entity | Backend Service | Angular Component/Page | Automated Test | Status | Notes |
+|---|---|---|---|---|---|---|---|---|
+| FR-01 | Create logical model | POST `/api/models` | Model | ModelService | Model Inventory | `test_create_model_returns_audited_model` | COMPLETE | Name is unique and required model fields are persisted. |
+| FR-02 | List/search/filter models | GET `/api/models` | Model | ModelService | Model Inventory | `test_list_models_returns_models` | PARTIAL | List is complete; search, lifecycle filtering, and pagination are deferred. |
+| FR-03 | View model details | GET `/api/models/{model_id}` | Model | ModelService | Model Version Details | `test_get_model_by_id_returns_model`, `test_get_nonexistent_model_returns_structured_not_found` | COMPLETE | Returns the model or a structured 404 error. |
+| FR-04 | Register model version | POST `/api/models/{model_id}/versions` | ModelVersion | ModelService | Version Details/register dialog | `test_register_two_versions` | NOT_STARTED | Starts PENDING/DRAFT. |
+| FR-05 | Maintain version metadata/tags/framework/artifact/training reference | POST/GET versions | ModelVersion | ModelService | Version Details | `test_version_fields_round_trip` | NOT_STARTED | Includes description, tags and metadata. |
+| FR-06 | Reject duplicate version within model | POST version | ModelVersion | ModelService | Version Details error state | `test_reject_duplicate_version_per_model` | NOT_STARTED | Database and service guard. |
+| FR-07 | Approve model version | POST `/api/models/{model_id}/versions/{version_id}/approve` | ModelVersion | VersionLifecycleService | Version Details | `test_approve_version` | NOT_STARTED | Records approver and UTC approval time. |
+| FR-08 | Promote lifecycle stage | POST `/api/models/{model_id}/versions/{version_id}/lifecycle` | ModelVersion | VersionLifecycleService | Version Details | `test_reject_invalid_lifecycle_transition` | NOT_STARTED | Explicit allowed transition map. |
+| FR-09 | Create deployment request | POST `/api/deployments` | Deployment, DeploymentEvent | DeploymentService | Deployment page | `test_create_deployment` | NOT_STARTED | Environment required. |
+| FR-10 | Track deployment statuses/history | GET `/api/deployments`, GET `/api/deployments/{id}` | Deployment, DeploymentEvent | DeploymentService | Deployment page/event timeline | `test_status_events_created` | NOT_STARTED | Every state change is evented. |
+| FR-11 | Simulate deployment failure | POST `/api/deployments` | Deployment, DeploymentEvent | DeploymentService | Deployment request form | `test_simulate_failed_deployment` | NOT_STARTED | `simulate_failure=true`. |
+| FR-12 | Idempotent deployment request | POST `/api/deployments` + `Idempotency-Key` | Deployment | DeploymentService | Deployment page | `test_duplicate_idempotency_key_returns_original` | NOT_STARTED | Duplicate must not create events. |
+| FR-13 | Prevent unapproved production deployment | POST `/api/deployments` | ModelVersion, Deployment | DeploymentService | Deployment page validation | `test_unapproved_version_cannot_deploy_production` | NOT_STARTED | Return business-rule error. |
+| FR-14 | Retry failed deployment | POST `/api/deployments/{id}/retry` | Deployment, DeploymentEvent | DeploymentService | Deployment page | `test_retry_failed_deployment` | NOT_STARTED | New linked attempt preserves history. |
+| FR-15 | Reject retry of non-failed deployment | POST retry | Deployment | DeploymentService | Deployment page error state | `test_reject_retry_for_non_failed_deployment` | NOT_STARTED | `409` invalid state. |
+| FR-16 | Roll back production deployment | POST `/api/deployments/{id}/rollback` | Deployment, DeploymentEvent | DeploymentService | Deployment page | `test_rollback_successful_production_deployment` | NOT_STARTED | Restores immediately prior successful production version. |
+| FR-17 | Reject ineligible rollback | POST rollback | Deployment | DeploymentService | Deployment page error state | `test_reject_rollback_without_prior_production` | NOT_STARTED | Also reject non-production/non-success status. |
+| FR-18 | Return monitoring snapshot | GET `/api/models/{model_id}/metrics?version_id=` | MonitoringMetric | MonitoringService | Monitoring Dashboard | `test_fetch_monitoring_metrics` | NOT_STARTED | Demo/representative data labeled in UI/README. |
+| FR-19 | Compare two same-model versions | GET `/api/models/{model_id}/versions/compare` | ModelVersion, MonitoringMetric | ComparisonService | Version Details compare dialog | `test_compare_versions_same_model` | NOT_STARTED | Includes fields and metrics where available. |
+| FR-20 | Reject cross-model comparison | GET compare | ModelVersion | ComparisonService | Version Details error state | `test_reject_compare_versions_different_models` | NOT_STARTED | `409` or `404` contract selects `409`. |
+| FR-21 | Expose health | GET `/api/health` and `/health` alias | — | Health router | — | `test_health` | COMPLETE | Unauthenticated health response and integration test added. |
+| FR-22 | Structured API failures | All endpoints | — | Exception handlers | Shared API error UI | `test_error_envelope` | COMPLETE | Typed error envelope includes a correlation trace ID. |
+| FR-23 | Structured logging/audit timestamps | All mutations | All MLOps entities | Services | — | `test_audit_timestamps` | PARTIAL | UTC persistence base and JSON logging added; MLOps entities are implemented in later phases. |
+| UI-01 | Responsive inventory with loading/empty/error/populated states | GET/POST models | Model, ModelVersion | ModelService | `/models` | — | COMPLETE | Routed inventory, admin model creation, reusable states, and detail navigation are implemented; backend search/filter is unavailable. |
+| UI-02 | Version details with register/approve/monitor/compare | Version and approval APIs | ModelVersion, MonitoringMetric | Model/Version/Monitoring services | `/models/:modelId` | — | PARTIAL | Metadata, version registration, and admin approval are implemented; lifecycle and comparison UI are unavailable. |
+| UI-03 | Deployment operations with filters/form/history/retry/rollback | Deployment APIs | Deployment, DeploymentEvent | DeploymentService | `/deployments` | — | COMPLETE | Administrator create/retry/eligible rollback controls and event history are API-backed. |
+| UI-04 | Monitoring metrics visualization | GET metrics | MonitoringMetric | MonitoringService | `/monitoring` | — | COMPLETE | The page selects a registered model and renders its real metric snapshot; no global endpoint exists. |
+| API-01 | Model create endpoint | POST `/api/models` | Model | ModelService | Model Inventory | `test_create_model_returns_audited_model`, `test_create_model_rejects_invalid_input`, `test_create_model_rejects_duplicate_name` | COMPLETE | Typed request schema and structured 409/422 errors. |
+| API-02 | Model list endpoint | GET `/api/models` | Model | ModelService | Model Inventory | `test_list_models_returns_models` | COMPLETE | Returns ordered model inventory; optional filters are deferred. |
+| API-03 | Model detail endpoint | GET `/api/models/{model_id}` | Model | ModelService | Version Details | `test_get_model_by_id_returns_model`, `test_get_nonexistent_model_returns_structured_not_found` | COMPLETE | UUID route validation and standard 404 response. |
+| API-04 | Version registration endpoint | POST `/api/models/{model_id}/versions` | ModelVersion | ModelService | Version Details | `test_register_two_versions` | NOT_STARTED | Mandatory API. |
+| API-05 | Version list endpoint | GET `/api/models/{model_id}/versions` | ModelVersion | ModelService | Version Details | `test_list_versions` | NOT_STARTED | Mandatory API. |
+| API-06 | Approval endpoint | POST approve | ModelVersion | VersionLifecycleService | Version Details | `test_approve_version` | NOT_STARTED | Recommended API. |
+| API-07 | Lifecycle endpoint | POST lifecycle | ModelVersion | VersionLifecycleService | Version Details | `test_lifecycle_transition` | NOT_STARTED | Recommended API. |
+| API-08 | Comparison endpoint | GET compare | ModelVersion, MonitoringMetric | ComparisonService | Compare dialog/page | `test_compare_versions_same_model` | NOT_STARTED | Recommended API. |
+| API-09 | Deployment create endpoint | POST `/api/deployments` | Deployment, DeploymentEvent | DeploymentService | Deployment Page | `test_create_deployment` | NOT_STARTED | Mandatory API. |
+| API-10 | Deployment list endpoint | GET `/api/deployments` | Deployment | DeploymentService | Deployment Page | `test_list_deployments` | NOT_STARTED | Mandatory API. |
+| API-11 | Deployment details/events endpoint | GET `/api/deployments/{id}` | Deployment, DeploymentEvent | DeploymentService | Event Timeline | `test_get_deployment_with_events` | NOT_STARTED | Mandatory API. |
+| API-12 | Retry endpoint | POST retry | Deployment, DeploymentEvent | DeploymentService | Deployment Page | `test_retry_failed_deployment` | NOT_STARTED | Mandatory API. |
+| API-13 | Rollback endpoint | POST rollback | Deployment, DeploymentEvent | DeploymentService | Deployment Page | `test_rollback_successful_production_deployment` | NOT_STARTED | Mandatory API. |
+| API-14 | Metrics endpoint | GET `/api/models/{model_id}/metrics` | MonitoringMetric | MonitoringService | Monitoring Dashboard | `test_fetch_monitoring_metrics` | NOT_STARTED | Mandatory API. |
+| API-15 | Health endpoint | GET `/api/health` | — | Health router | — | `test_health` | NOT_STARTED | Mandatory API. |
+| AC-01 | Demonstrate model plus two versions | Model/version APIs | Model, ModelVersion | ModelService | Inventory/Details | `test_register_two_versions` | NOT_STARTED | Acceptance scenario 1. |
+| AC-02 | Approve one version | Approval API | ModelVersion | VersionLifecycleService | Version Details | `test_approve_version` | NOT_STARTED | Acceptance scenario 2. |
+| AC-03 | Block unapproved production deployment | Deployment API | ModelVersion, Deployment | DeploymentService | Deployment Page | `test_unapproved_version_cannot_deploy_production` | NOT_STARTED | Acceptance scenario 3. |
+| AC-04 | Deploy approved version | Deployment API | Deployment, DeploymentEvent | DeploymentService | Deployment Page | `test_deploy_approved_version` | NOT_STARTED | Acceptance scenario 4. |
+| AC-05 | Show Angular monitoring data | Metrics API | MonitoringMetric | MonitoringService | Monitoring Dashboard | `monitoring-dashboard.component.spec.ts` | NOT_STARTED | Acceptance scenario 5. |
+| AC-06 | Retry failed deployment | Retry API | Deployment, DeploymentEvent | DeploymentService | Deployment Page | `test_retry_failed_deployment` | NOT_STARTED | Acceptance scenario 6. |
+| AC-07 | Roll back production deployment | Rollback API | Deployment, DeploymentEvent | DeploymentService | Deployment Page | `test_rollback_successful_production_deployment` | NOT_STARTED | Acceptance scenario 7. |
+| AC-08 | Safely handle duplicate deployment | Deployment API | Deployment | DeploymentService | Deployment Page | `test_duplicate_idempotency_key_returns_original` | NOT_STARTED | Acceptance scenario 8. |
+| AC-09 | Clearly surface API failure | All APIs | — | — | Shared error state | `api-error.interceptor.spec.ts` | NOT_STARTED | Acceptance scenario 9. |
+| AC-10 | Verify critical workflow automation | All critical APIs | All entities | Services | — | `test_mlops_workflows.py` | NOT_STARTED | Acceptance scenario 10. |

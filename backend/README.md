@@ -1,6 +1,6 @@
 # ABB MLOps Platform API
 
-The backend uses SQLite by default for local development and tests. Set `DATABASE_URL` to use PostgreSQL; production PostgreSQL schema changes are managed by Alembic.
+The backend uses SQLite by default for local development. Application data is saved to `backend/projects.db`; schema changes are managed by Alembic. Tests use isolated temporary SQLite databases.
 
 ## Prerequisites
 
@@ -18,17 +18,18 @@ python -m pip install -r requirements.txt
 
 ## Run locally with SQLite
 
-Leave `DATABASE_URL` unset to use `backend/projects.db`. Set a JWT secret before starting the API:
+Create `backend/.env` from `.env.example`, replace the JWT and demo-user password placeholders with local values, apply migrations, and start the API. Leave `DATABASE_URL` unset to use `backend/projects.db`:
 
 ```powershell
 cd backend
 .\.venv\Scripts\Activate.ps1
-Remove-Item Env:DATABASE_URL -ErrorAction SilentlyContinue
-$env:JWT_SECRET_KEY = "replace-with-a-long-random-secret"
+Copy-Item .env.example .env
+alembic upgrade head
+python -m app.seed_demo_users
 uvicorn app.main:app --reload
 ```
 
-SQLite tables are created automatically at application startup. The API listens on `http://127.0.0.1:8000`.
+The API listens on `http://127.0.0.1:8000`. Verify the service with `Invoke-WebRequest http://127.0.0.1:8000/api/health`. `DATABASE_URL`, `LOG_LEVEL`, and `ENVIRONMENT` are read from the environment or `backend/.env`. LocalDB is intended for Windows local development only, not production deployment.
 
 ## Run PostgreSQL with Docker Compose
 
@@ -45,7 +46,7 @@ To use different local PostgreSQL credentials, set `POSTGRES_DB`, `POSTGRES_USER
 
 ## Run migrations
 
-For a PostgreSQL database available from the host, create `backend/.env` from `.env.example`, update its values, and run:
+For the default SQLite database:
 
 ```powershell
 cd backend
@@ -53,11 +54,11 @@ cd backend
 alembic upgrade head
 ```
 
-Alembic reads `DATABASE_URL` through the application settings. Do not commit `backend/.env`.
+Alembic reads `DATABASE_URL` through the application settings. Leave it unset for the default SQLite database, or set it to another supported connection URL. Do not commit `backend/.env`.
 
 ## Run tests
 
-Tests use an isolated temporary SQLite database and do not require Docker or PostgreSQL:
+Tests use an isolated temporary SQLite database and do not require LocalDB or Docker:
 
 ```powershell
 cd backend
