@@ -1,37 +1,83 @@
-# Python
+# Environment and secrets
 .env
-*.db
+.env.*
+!.env.example
+!.env.*.example
+
+# Python
 __pycache__/
-.pytest_cache/
+*.py[cod]
+*$py.class
+*.so
+.Python
 .venv/
-backend/.venv/
-backend/__pycache__/
-backend/**/*.pyc
-backend/.env
-backend/.pytest_cache/
+venv/
+env/
+ENV/
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.pytype/
+.tox/
+.nox/
+.hypothesis/
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
 
-# SQLite local database files
-backend/projects.db
-backend/projects.db-journal
-backend/projects.db-wal
-backend/projects.db-shm
+# SQLite and local database files
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+*.sqlite-shm
+*.sqlite-wal
+*.mdf
+*.ldf
 
-# Angular
-frontend/mlops-ui/node_modules/
-frontend/mlops-ui/dist/
-frontend/mlops-ui/.angular/
+# Node.js and frontend build output
+node_modules/
+.npm/
+.yarn/
+.pnpm-store/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.angular/
+.cache/
+.parcel-cache/
+.vite/
+dist/
+coverage/
+*.tsbuildinfo
 
-# Visual Studio temporary files
+# Docker local overrides and bind-mounted data
+docker-compose.override.yml
+docker-compose.local.yml
+docker-data/
+
+# IDE and editor files
 .vs/
-*.user
+.vscode/
 *.suo
-
-# SQL Server local database files
-database/*.mdf
-database/*.ldf
+*.user
+*.userosscache
+*.sln.docstates
+*.swp
+*.swo
+*~
 
 # Test reports
 coverage.xml
 htmlcov/
-*.db 
-.vs/ 
