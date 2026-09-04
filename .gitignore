@@ -33,3 +33,5 @@ database/*.ldf
 # Test reports
 coverage.xml
 htmlcov/
+*.db 
+.vs/ 
